@@ -15,14 +15,42 @@ local LP = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local RS = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting") -- ADICIONADO PARA FULLBRIGHT
 
 local Vars = {
     Aimbot = false, Smoothness = 0.2, Fov = 100, FovVis = false,
     EspBox = false, EspInfo = false, 
-    Ws = 16, Jp = 50, Fly = false, FlySpeed = 2
+    Ws = 16, Jp = 50, Fly = false, FlySpeed = 2,
+    FullBright = false
 }
 
--- [[ SISTEMA DE TELEPORTE POR TOQUE ]] --
+-- SALVAR ILUMINAÇÃO ORIGINAL
+local OriginalLighting = {
+    Brightness = Lighting.Brightness,
+    ClockTime = Lighting.ClockTime,
+    FogEnd = Lighting.FogEnd,
+    GlobalShadows = Lighting.GlobalShadows,
+    Ambient = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient
+}
+
+-- FUNÇÃO FULLBRIGHT
+local function ApplyFullBright()
+    Lighting.Brightness = 3
+    Lighting.ClockTime = 14
+    Lighting.FogEnd = 100000
+    Lighting.GlobalShadows = false
+    Lighting.Ambient = Color3.fromRGB(255,255,255)
+    Lighting.OutdoorAmbient = Color3.fromRGB(255,255,255)
+end
+
+local function ResetLighting()
+    for i,val in pairs(OriginalLighting) do
+        Lighting[i] = val
+    end
+end
+
+-- SISTEMA DE TELEPORTE POR TOQUE
 local function CreateTPTool()
     local tool = Instance.new("Tool")
     tool.Name = "Teleport Tool"
@@ -37,13 +65,13 @@ local function CreateTPTool()
     end)
 end
 
--- [[ FUNÇÃO PARA CALCULAR O ALVO MAIS PRÓXIMO ]] --
+-- FUNÇÃO PARA CALCULAR ALVO MAIS PRÓXIMO
 local function GetClosest()
     local target = nil
     local dist = Vars.Fov
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            if p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health <= 0 then continue end
+            if p.Character:FindFirstChildOfClass("Humanoid") and p.Character.Humanoid.Health <= 0 then continue end
             local pos, screen = Camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
             if screen then
                 local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
@@ -57,7 +85,7 @@ local function GetClosest()
     return target
 end
 
--- [[ SISTEMA DE ESP NATIVO ]] --
+-- SISTEMA DE ESP NATIVO
 local function CreateESP(p)
     local box = Drawing.new("Square")
     local healthBar = Drawing.new("Line")
@@ -113,9 +141,7 @@ local function CreateESP(p)
     coroutine.wrap(Update)()
 end
 
-----------------------------------------------------------------
 -- INTERFACE RAYFIELD
-----------------------------------------------------------------
 local TabCombat = Window:CreateTab("Combat")
 TabCombat:CreateToggle({Name = "Aimbot (Mira Suave)", CurrentValue = false, Callback = function(v) Vars.Aimbot = v end})
 TabCombat:CreateSlider({Name = "Suavidade (Aimbot)", Range = {0, 1}, Increment = 0.1, CurrentValue = 0.2, Callback = function(v) Vars.Smoothness = v end})
@@ -123,7 +149,20 @@ TabCombat:CreateSlider({Name = "Suavidade (Aimbot)", Range = {0, 1}, Increment =
 local TabVisuals = Window:CreateTab("Visuals")
 TabVisuals:CreateToggle({Name = "ESP Box (Simples)", CurrentValue = false, Callback = function(v) Vars.EspBox = v end})
 
--- INTEGRAÇÃO DO SCRIPT EXTERNO QUE VOCÊ PEDIU
+-- FULL BRIGHT
+TabVisuals:CreateToggle({
+    Name = "Full Bright (Optimized)",
+    CurrentValue = false,
+    Callback = function(v)
+        Vars.FullBright = v
+        if v then
+            ApplyFullBright()
+        else
+            ResetLighting()
+        end
+    end
+})
+
 TabVisuals:CreateButton({
     Name = "Ativar ESP Universal (Avançado)",
     Callback = function()
@@ -140,29 +179,18 @@ TabUtil:CreateButton({
 })
 
 TabUtil:CreateButton({Name = "Pegar Item de Teleporte", Callback = function() CreateTPTool() end})
-
-TabUtil:CreateSlider({
-    Name = "Velocidade (WalkSpeed)", 
-    Range = {16, 250}, 
-    Increment = 1, 
-    CurrentValue = 16, 
-    Callback = function(v) Vars.Ws = v end
-})
-
-TabUtil:CreateSlider({
-    Name = "Pulo (JumpPower)", 
-    Range = {50, 500}, 
-    Increment = 1, 
-    CurrentValue = 50, 
-    Callback = function(v) Vars.Jp = v end
-})
-
+TabUtil:CreateSlider({Name = "Velocidade (WalkSpeed)", Range = {16, 250}, Increment = 1, CurrentValue = 16, Callback = function(v) Vars.Ws = v end})
+TabUtil:CreateSlider({Name = "Pulo (JumpPower)", Range = {50, 500}, Increment = 1, CurrentValue = 50, Callback = function(v) Vars.Jp = v end})
 TabUtil:CreateButton({
     Name = "Infinite Yield", 
-    Callback = function() 
-        loadstring(game:HttpGet('https://raw.githubusercontent.com'))() 
-    end
+    Callback = function() loadstring(game:HttpGet('https://raw.githubusercontent.com'))() end
 })
+
+-- PROTEÇÃO FULL BRIGHT (caso o jogo altere iluminação)
+Lighting:GetPropertyChangedSignal("Brightness"):Connect(function() if Vars.FullBright then ApplyFullBright() end end)
+Lighting:GetPropertyChangedSignal("ClockTime"):Connect(function() if Vars.FullBright then ApplyFullBright() end end)
+Lighting:GetPropertyChangedSignal("FogEnd"):Connect(function() if Vars.FullBright then ApplyFullBright() end end)
+Lighting:GetPropertyChangedSignal("GlobalShadows"):Connect(function() if Vars.FullBright then ApplyFullBright() end end)
 
 -- LOOP PRINCIPAL
 RS.RenderStepped:Connect(function()
