@@ -43,7 +43,7 @@ local function GetClosest()
     local dist = Vars.Fov
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            if p.Character.Humanoid.Health <= 0 then continue end
+            if p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health <= 0 then continue end
             local pos, screen = Camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
             if screen then
                 local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
@@ -57,7 +57,7 @@ local function GetClosest()
     return target
 end
 
--- [[ SISTEMA DE ESP ]] --
+-- [[ SISTEMA DE ESP NATIVO ]] --
 local function CreateESP(p)
     local box = Drawing.new("Square")
     local healthBar = Drawing.new("Line")
@@ -70,7 +70,7 @@ local function CreateESP(p)
                 local hum = p.Character:FindFirstChildOfClass("Humanoid")
                 local pos, screen = Camera:WorldToViewportPoint(root.Position)
                 
-                if screen then
+                if screen and hum then
                     local sizeX = 2000 / pos.Z
                     local sizeY = 3000 / pos.Z
                     local x = pos.X - sizeX / 2
@@ -104,7 +104,9 @@ local function CreateESP(p)
                 box.Visible = false
                 healthBar.Visible = false
                 info.Visible = false
-                if not p.Parent then box:Remove() healthBar:Remove() info:Remove() end
+                if not p.Parent then 
+                    box:Remove() healthBar:Remove() info:Remove() 
+                end
             end
         end)
     end
@@ -119,10 +121,17 @@ TabCombat:CreateToggle({Name = "Aimbot (Mira Suave)", CurrentValue = false, Call
 TabCombat:CreateSlider({Name = "Suavidade (Aimbot)", Range = {0, 1}, Increment = 0.1, CurrentValue = 0.2, Callback = function(v) Vars.Smoothness = v end})
 
 local TabVisuals = Window:CreateTab("Visuals")
-TabVisuals:CreateToggle({Name = "ESP Box Completo", CurrentValue = false, Callback = function(v) Vars.EspBox = v end})
+TabVisuals:CreateToggle({Name = "ESP Box (Simples)", CurrentValue = false, Callback = function(v) Vars.EspBox = v end})
+
+-- INTEGRAÇÃO DO SCRIPT EXTERNO QUE VOCÊ PEDIU
+TabVisuals:CreateButton({
+    Name = "Ativar ESP Universal (Avançado)",
+    Callback = function()
+        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Esp-universal-49905"))()
+    end
+})
 
 local TabUtil = Window:CreateTab("Utility")
--- Script de Fly adicionado aqui:
 TabUtil:CreateButton({
     Name = "Ativar Fly GUI",
     Callback = function()
@@ -148,11 +157,15 @@ TabUtil:CreateSlider({
     Callback = function(v) Vars.Jp = v end
 })
 
-TabUtil:CreateButton({Name = "Infinite Yield", Callback = function() loadstring(game:HttpGet('https://raw.githubusercontent.com'))() end})
+TabUtil:CreateButton({
+    Name = "Infinite Yield", 
+    Callback = function() 
+        loadstring(game:HttpGet('https://raw.githubusercontent.com'))() 
+    end
+})
 
 -- LOOP PRINCIPAL
 RS.RenderStepped:Connect(function()
-    -- Aimbot Loop
     if Vars.Aimbot then
         local target = GetClosest()
         if target then
@@ -161,15 +174,14 @@ RS.RenderStepped:Connect(function()
         end
     end
     
-    -- LocalPlayer Attributes Loop
     if LP.Character and LP.Character:FindFirstChild("Humanoid") then
         LP.Character.Humanoid.WalkSpeed = Vars.Ws
         LP.Character.Humanoid.JumpPower = Vars.Jp
     end
 end)
 
--- Inicializa ESP
+-- Inicializa ESP Nativo
 for _, p in pairs(Players:GetPlayers()) do CreateESP(p) end
 Players.PlayerAdded:Connect(CreateESP)
 
-Rayfield:Notify({Title = "Nebula V6", Content = "Script Atualizado com Fly!", Duration = 5})
+Rayfield:Notify({Title = "Nebula V6", Content = "Sistemas Prontos!", Duration = 5})
