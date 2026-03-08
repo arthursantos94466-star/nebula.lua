@@ -18,6 +18,10 @@ local UIS = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local Stats = game:GetService("Stats")
 
+local function GetCharacter()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+
 -- Tabs
 local CombatTab = Window:CreateTab("Combat",4483362458)
 local MovementTab = Window:CreateTab("Movement",4483362458)
@@ -34,6 +38,7 @@ CombatTab:CreateButton({
 Name="Aimbot (External)",
 Callback=function()
 loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Aimbot-universal-111551"))()
+end
 })
 
 CombatTab:CreateButton({
@@ -61,7 +66,14 @@ Range={0,200},
 Increment=1,
 CurrentValue=16,
 Callback=function(Value)
-LocalPlayer.Character.Humanoid.WalkSpeed = Value
+
+local char = GetCharacter()
+local hum = char:FindFirstChildOfClass("Humanoid")
+
+if hum then
+hum.WalkSpeed = Value
+end
+
 end
 })
 
@@ -71,14 +83,21 @@ Range={0,200},
 Increment=1,
 CurrentValue=50,
 Callback=function(Value)
-LocalPlayer.Character.Humanoid.JumpPower = Value
+
+local char = GetCharacter()
+local hum = char:FindFirstChildOfClass("Humanoid")
+
+if hum then
+hum.JumpPower = Value
+end
+
 end
 })
 
 MovementTab:CreateButton({
 Name="Fly (External)",
 Callback=function()
-loadstring(game:HttpGet("https://pastebin.com/raw/6gC8Qq7D"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
 end
 })
 
@@ -95,7 +114,11 @@ end
 
 UIS.JumpRequest:Connect(function()
 if InfiniteJump then
-LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+local char = GetCharacter()
+local hum = char:FindFirstChildOfClass("Humanoid")
+if hum then
+hum:ChangeState("Jumping")
+end
 end
 end)
 
@@ -112,11 +135,14 @@ end
 
 RunService.Stepped:Connect(function()
 if noclip then
-for _,v in pairs(LocalPlayer.Character:GetDescendants()) do
+local char = GetCharacter()
+
+for _,v in pairs(char:GetDescendants()) do
 if v:IsA("BasePart") then
 v.CanCollide=false
 end
 end
+
 end
 end)
 
@@ -125,7 +151,7 @@ end)
 ---------------------------------------------------
 
 local dashGui = Instance.new("ScreenGui")
-dashGui.Parent = game.CoreGui
+dashGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local dashButton = Instance.new("TextButton")
 dashButton.Parent = dashGui
@@ -140,7 +166,7 @@ dashButton.Draggable = true
 
 dashButton.MouseButton1Click:Connect(function()
 
-local char = LocalPlayer.Character
+local char = GetCharacter()
 local hrp = char:FindFirstChild("HumanoidRootPart")
 
 if hrp then
@@ -150,21 +176,9 @@ bv.MaxForce = Vector3.new(9e9,9e9,9e9)
 bv.Velocity = workspace.CurrentCamera.CFrame.LookVector * 600
 bv.Parent = hrp
 
-local trail = Instance.new("Trail")
-local a0 = Instance.new("Attachment", hrp)
-local a1 = Instance.new("Attachment", hrp)
-
-trail.Attachment0 = a0
-trail.Attachment1 = a1
-trail.Lifetime = 0.15
-trail.Parent = hrp
-
 task.wait(0.18)
 
 bv:Destroy()
-trail:Destroy()
-a0:Destroy()
-a1:Destroy()
 
 end
 
@@ -177,7 +191,7 @@ end)
 VisualTab:CreateButton({
 Name="ESP",
 Callback=function()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Infinite-Store/Infinite-Store/main/ESP.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/ESP-Script/refs/heads/main/ESP.lua"))()
 end
 })
 
@@ -223,7 +237,7 @@ table.insert(list,v.Name)
 end
 end
 
-dropdown:Set(list)
+dropdown:Refresh(list)
 
 end
 
@@ -239,7 +253,7 @@ if selectedPlayer then
 local target = Players:FindFirstChild(selectedPlayer)
 
 if target and target.Character then
-LocalPlayer.Character.HumanoidRootPart.CFrame =
+GetCharacter().HumanoidRootPart.CFrame =
 target.Character.HumanoidRootPart.CFrame
 end
 end
@@ -260,7 +274,7 @@ local target = Players:FindFirstChild(selectedPlayer)
 if target and target.Character then
 
 local hrp = target.Character:FindFirstChild("HumanoidRootPart")
-local myhrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+local myhrp = GetCharacter():FindFirstChild("HumanoidRootPart")
 
 if hrp and myhrp then
 myhrp.CFrame = hrp.CFrame * CFrame.new(0,0,3)
@@ -272,25 +286,7 @@ end
 })
 
 ---------------------------------------------------
--- SPECTATE
----------------------------------------------------
-
-TeleportTab:CreateButton({
-Name="Spectate Player",
-Callback=function()
-
-local target=Players:FindFirstChild(selectedPlayer)
-
-if target and target.Character then
-workspace.CurrentCamera.CameraSubject =
-target.Character:FindFirstChild("Humanoid")
-end
-
-end
-})
-
----------------------------------------------------
--- CLICK TELEPORT RÁPIDO
+-- CLICK TELEPORT
 ---------------------------------------------------
 
 local clicktp=false
@@ -308,7 +304,7 @@ mouse.Button1Down:Connect(function()
 
 if clicktp then
 
-local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+local hrp = GetCharacter():FindFirstChild("HumanoidRootPart")
 
 if hrp then
 hrp.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0,3,0))
@@ -333,7 +329,7 @@ tool.RequiresHandle=false
 tool.Activated:Connect(function()
 
 local mouse=LocalPlayer:GetMouse()
-LocalPlayer.Character:MoveTo(mouse.Hit.p)
+GetCharacter():MoveTo(mouse.Hit.p)
 
 end)
 
