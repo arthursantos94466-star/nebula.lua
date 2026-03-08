@@ -22,7 +22,7 @@ local Vars = {
     Ws = 16, Jp = 50, Fly = false, FlySpeed = 2
 }
 
--- [[ SISTEMA DE TELEPORTE POR TOQUE (ITEM NO INVENTÁRIO) ]] --
+-- [[ SISTEMA DE TELEPORTE POR TOQUE ]] --
 local function CreateTPTool()
     local tool = Instance.new("Tool")
     tool.Name = "Teleport Tool"
@@ -57,7 +57,7 @@ local function GetClosest()
     return target
 end
 
--- [[ SISTEMA DE ESP (BOX, VIDA E DISTÂNCIA) ]] --
+-- [[ SISTEMA DE ESP ]] --
 local function CreateESP(p)
     local box = Drawing.new("Square")
     local healthBar = Drawing.new("Line")
@@ -76,21 +76,18 @@ local function CreateESP(p)
                     local x = pos.X - sizeX / 2
                     local y = pos.Y - sizeY / 2
                     
-                    -- Retângulo Branco (Box)
                     box.Visible = true
                     box.Color = Color3.new(1, 1, 1)
                     box.Size = Vector2.new(sizeX, sizeY)
                     box.Position = Vector2.new(x, y)
                     box.Thickness = 1
                     
-                    -- Barra de Vida Verde (Lateral)
                     healthBar.Visible = true
                     healthBar.Color = Color3.fromRGB(0, 255, 0)
                     healthBar.Thickness = 2
                     healthBar.From = Vector2.new(x - 5, y + sizeY)
                     healthBar.To = Vector2.new(x - 5, y + sizeY - (sizeY * (hum.Health / hum.MaxHealth)))
                     
-                    -- Informações (Metros e Nome)
                     local dist = math.floor((LP.Character.HumanoidRootPart.Position - root.Position).Magnitude)
                     info.Visible = true
                     info.Text = string.format("%s\n[%d m]", p.Name, dist)
@@ -125,11 +122,37 @@ local TabVisuals = Window:CreateTab("Visuals")
 TabVisuals:CreateToggle({Name = "ESP Box Completo", CurrentValue = false, Callback = function(v) Vars.EspBox = v end})
 
 local TabUtil = Window:CreateTab("Utility")
+-- Script de Fly adicionado aqui:
+TabUtil:CreateButton({
+    Name = "Ativar Fly GUI",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
+    end
+})
+
 TabUtil:CreateButton({Name = "Pegar Item de Teleporte", Callback = function() CreateTPTool() end})
+
+TabUtil:CreateSlider({
+    Name = "Velocidade (WalkSpeed)", 
+    Range = {16, 250}, 
+    Increment = 1, 
+    CurrentValue = 16, 
+    Callback = function(v) Vars.Ws = v end
+})
+
+TabUtil:CreateSlider({
+    Name = "Pulo (JumpPower)", 
+    Range = {50, 500}, 
+    Increment = 1, 
+    CurrentValue = 50, 
+    Callback = function(v) Vars.Jp = v end
+})
+
 TabUtil:CreateButton({Name = "Infinite Yield", Callback = function() loadstring(game:HttpGet('https://raw.githubusercontent.com'))() end})
 
 -- LOOP PRINCIPAL
 RS.RenderStepped:Connect(function()
+    -- Aimbot Loop
     if Vars.Aimbot then
         local target = GetClosest()
         if target then
@@ -138,13 +161,15 @@ RS.RenderStepped:Connect(function()
         end
     end
     
+    -- LocalPlayer Attributes Loop
     if LP.Character and LP.Character:FindFirstChild("Humanoid") then
         LP.Character.Humanoid.WalkSpeed = Vars.Ws
+        LP.Character.Humanoid.JumpPower = Vars.Jp
     end
 end)
 
--- Inicializa ESP para todos
+-- Inicializa ESP
 for _, p in pairs(Players:GetPlayers()) do CreateESP(p) end
 Players.PlayerAdded:Connect(CreateESP)
 
-Rayfield:Notify({Title = "Nebula V6", Content = "Script Atualizado!", Duration = 5})
+Rayfield:Notify({Title = "Nebula V6", Content = "Script Atualizado com Fly!", Duration = 5})
