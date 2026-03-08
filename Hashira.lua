@@ -281,6 +281,93 @@ local SelectedCar = nil
 local function GetCarOwner(seat)
     local model = seat:FindFirstAncestorOfClass("Model")
     if model then
+local CarList = {}
+local CarObjects = {}
+local SelectedCar = nil
+
+-- Função para extrair nome do carro e dono (Nogales Heróica Style)
+local function GetCarDetails(seat)
+    local carModel = seat:FindFirstAncestorOfClass("Model")
+    local owner = "Desconhecido"
+    local carName = carModel and carModel.Name or "Veículo"
+
+    if carModel then
+        -- 1. Procura em Atributos (Sistema mais comum)
+        local attr = carModel:GetAttribute("Owner") or carModel:GetAttribute("Dono") or carModel:GetAttribute("OwnerName")
+        
+        -- 2. Procura por Values dentro do modelo
+        local val = carModel:FindFirstChild("Owner") or carModel:FindFirstChild("Dono") or carModel:FindFirstChild("OwnerName")
+
+        if attr then
+            owner = tostring(attr)
+        elseif val and (val:IsA("StringValue") or val:IsA("ObjectValue")) then
+            owner = tostring(val.Value)
+        else
+            -- 3. Fallback: Checa se o nome de um player está no nome do modelo (ex: "Carro de Player123")
+            for _, p in pairs(game.Players:GetPlayers()) do
+                if carModel.Name:find(p.Name) then
+                    owner = p.Name
+                    break
+                end
+            end
+        end
+    end
+    return carName, owner
+end
+
+local function UpdateCarList()
+    CarList = {}
+    CarObjects = {}
+
+    for _, v in pairs(workspace:GetDescendants()) do
+        -- Verifica as duas classes possíveis de assento
+        if v:IsA("VehicleSeat") or v:IsA("DriveSeat") then
+            local name, owner = GetCarDetails(v)
+            local label = "🚘 " .. name .. " [" .. owner .. "]"
+            
+            table.insert(CarList, label)
+            CarObjects[label] = v
+        end
+    end
+end
+
+-- Inicializa
+UpdateCarList()
+
+-- Dropdown
+local CarDropdown = TeleportTab:CreateDropdown({
+    Name = "Selecionar Carro",
+    Options = CarList,
+    CurrentOption = nil,
+    Callback = function(opt)
+        SelectedCar = opt
+    end
+})
+
+-- Botão: Atualizar
+TeleportTab:CreateButton({
+    Name = "🔄 Atualizar Lista",
+    Callback = function()
+        UpdateCarList()
+        CarDropdown:Refresh(CarList, true)
+    end
+})
+
+-- Botão: Teleportar (Carro)
+TeleportTab:CreateButton({
+    Name = "🚀 Teleportar para Carro",
+    Callback = function()
+        if not SelectedCar then return end
+        
+        local seat = CarObjects[SelectedCar]
+        local character = game.Players.LocalPlayer.Character
+        
+        if seat and character and character:FindFirstChild("HumanoidRootPart") then
+            -- Teleporta 3 studs acima do assento para não bugar no chassi
+            character.HumanoidRootPart.CFrame = seat.CFrame * CFrame.new(0, 3, 0)
+        end
+    end
+})
         -- Tenta encontrar o dono por Atributo, Valor ou Nome do Modelo
         local owner = model:GetAttribute("Owner") or model:FindFirstChild("Owner")
         if owner then return tostring(owner) end
@@ -306,46 +393,6 @@ local function UpdateCarList()
             CarObjects[displayName] = v
         end
     end
-end
-
--- Inicializa a lista
-UpdateCarList()
-
--- UI Elements
-local CarDropdown = TeleportTab:CreateDropdown({
-    Name = "Selecionar Veículo",
-    Options = CarList,
-    CurrentOption = nil,
-    Callback = function(opt)
-        SelectedCar = opt
-    end
-})
-
-TeleportTab:CreateButton({
-    Name = "🔄 Atualizar Lista de Carros",
-    Callback = function()
-        UpdateCarList()
-        CarDropdown:Refresh(CarList, true) -- True para resetar a seleção se necessário
-    end
-})
-
-TeleportTab:CreateButton({
-    Name = "📍 Teleportar para o Carro",
-    Callback = function()
-        if not SelectedCar then return end
-        
-        local seat = CarObjects[SelectedCar]
-        if seat and seat.Parent then
-            local root = GetRoot()
-            if root then
-                -- Teleporta um pouco acima para não bugar no teto
-                root.CFrame = seat.CFrame * CFrame.new(0, 3, 0)
-            end
-        else
-            print("Carro não encontrado ou foi deletado.")
-        end
-    end
-})
 
 ---------------------------------------------------
 -- SAVE POSITION
