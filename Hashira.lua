@@ -364,3 +364,98 @@ end
 
 end
 })
+
+---------------------------------------------------
+-- CAR ESP
+---------------------------------------------------
+
+local CarESP = false
+local CarESPObjects = {}
+
+VisualTab:CreateToggle({
+Name = "Car ESP",
+CurrentValue = false,
+Callback = function(v)
+
+CarESP = v
+
+if not v then
+for _,gui in pairs(CarESPObjects) do
+if gui then gui:Destroy() end
+end
+CarESPObjects = {}
+end
+
+end
+})
+
+local function CreateCarESP(model, seat)
+
+local billboard = Instance.new("BillboardGui")
+billboard.Size = UDim2.new(0,150,0,40)
+billboard.AlwaysOnTop = true
+billboard.StudsOffset = Vector3.new(0,3,0)
+billboard.Parent = seat
+
+local text = Instance.new("TextLabel")
+text.Size = UDim2.new(1,0,1,0)
+text.BackgroundTransparency = 1
+text.TextStrokeTransparency = 0
+text.TextScaled = true
+text.Parent = billboard
+
+CarESPObjects[model] = {
+Gui = billboard,
+Text = text,
+Seat = seat
+}
+
+end
+
+RunService.RenderStepped:Connect(function()
+
+if not CarESP then return end
+
+local char = GetCharacter()
+local hrp = char:FindFirstChild("HumanoidRootPart")
+
+if not hrp then return end
+
+for _,v in pairs(workspace:GetDescendants()) do
+
+if v:IsA("VehicleSeat") or v.Name == "DriveSeat" then
+
+local model = v:FindFirstAncestorOfClass("Model")
+
+if model and not CarESPObjects[model] then
+CreateCarESP(model, v)
+end
+
+end
+
+end
+
+for model,data in pairs(CarESPObjects) do
+
+local seat = data.Seat
+local text = data.Text
+
+if seat and seat.Parent then
+
+local distance = math.floor((hrp.Position - seat.Position).Magnitude)
+
+local occupied = seat.Occupant ~= nil
+
+if occupied then
+text.TextColor3 = Color3.fromRGB(255,60,60)
+else
+text.TextColor3 = Color3.fromRGB(60,255,60)
+end
+
+text.Text = model.Name .. " [" .. distance .. "m]"
+
+end
+
+end
+
+end)
