@@ -72,44 +72,137 @@ end
 })
 
 ---------------------------------------------------
--- WHEEL AIMBOT
+-- WHEEL AIMBOT PRO (VRim + Prediction + Detection)
 ---------------------------------------------------
 
 local WheelAimbot = false
-local wheels = {"FL","FR","RL","RR"}
+local WheelTarget = "All"
 
+local FOV = 250
+local MaxDistance = 500
+local Prediction = 0.12
+
+local LockedWheel = nil
 local camera = workspace.CurrentCamera
-local mouse = LocalPlayer:GetMouse()
-local VirtualInputManager = game:GetService("VirtualInputManager")
+
+---------------------------------------------------
+-- CONTROLES RAYFIELD
+---------------------------------------------------
 
 CombatTab:CreateToggle({
 Name = "Wheel Aimbot",
 CurrentValue = false,
 Callback = function(v)
 WheelAimbot = v
+LockedWheel = nil
 end
 })
+
+CombatTab:CreateDropdown({
+Name = "Wheel Target",
+Options = {"All","FL","FR","RL","RR"},
+CurrentOption = {"All"},
+Callback = function(opt)
+WheelTarget = opt[1]
+LockedWheel = nil
+end
+})
+
+CombatTab:CreateSlider({
+Name = "Wheel Aimbot FOV",
+Range = {50,400},
+Increment = 5,
+CurrentValue = 250,
+Callback = function(v)
+FOV = v
+end
+})
+
+CombatTab:CreateSlider({
+Name = "Wheel Aimbot Distance",
+Range = {100,800},
+Increment = 10,
+CurrentValue = 500,
+Callback = function(v)
+MaxDistance = v
+end
+})
+
+CombatTab:CreateSlider({
+Name = "Prediction",
+Range = {0,0.3},
+Increment = 0.01,
+CurrentValue = 0.12,
+Callback = function(v)
+Prediction = v
+end
+})
+
+---------------------------------------------------
+-- DETECTAR SE CARRO ESTÁ OCUPADO
+---------------------------------------------------
+
+local function IsVehicleOccupied(part)
+
+local model = part:FindFirstAncestorOfClass("Model")
+if not model then return false end
+
+for _,v in pairs(model:GetDescendants()) do
+if v:IsA("VehicleSeat") and v.Occupant then
+return true
+end
+end
+
+return false
+end
+
+---------------------------------------------------
+-- PEGAR RODA MAIS PRÓXIMA
+---------------------------------------------------
 
 local function GetClosestWheel()
 
 local closest
-local distance = math.huge
+local closestDist = math.huge
+
+local center = Vector2.new(
+camera.ViewportSize.X/2,
+camera.ViewportSize.Y/2
+)
 
 for _,v in pairs(workspace:GetDescendants()) do
 
-for _,wheel in pairs(wheels) do
+if v.Name == "VRim" and v:IsA("BasePart") then
 
-if v.Name == wheel and v:IsA("BasePart") then
+local wheelFolder = v.Parent
+local wheelName = wheelFolder and wheelFolder.Parent and wheelFolder.Parent.Name
 
-local screenPos, visible = camera:WorldToViewportPoint(v.Position)
+if WheelTarget == "All" or wheelName == WheelTarget then
+
+local dist3D = (camera.CFrame.Position - v.Position).Magnitude
+
+if dist3D <= MaxDistance then
+
+local pos, visible = camera:WorldToViewportPoint(v.Position)
 
 if visible then
 
-local dist = (Vector2.new(screenPos.X,screenPos.Y) - Vector2.new(mouse.X,mouse.Y)).Magnitude
+local dist2D = (center - Vector2.new(pos.X,pos.Y)).Magnitude
 
-if dist < distance then
-distance = dist
+if dist2D < FOV then
+
+-- priorizar carro ocupado
+local priority = IsVehicleOccupied(v) and 0.5 or 1
+
+local finalDist = dist2D * priority
+
+if finalDist < closestDist then
+closestDist = finalDist
 closest = v
+end
+
+end
+
 end
 
 end
@@ -123,21 +216,31 @@ end
 return closest
 end
 
+---------------------------------------------------
+-- LOOP AIMBOT
+---------------------------------------------------
+
 RunService.RenderStepped:Connect(function()
 
-if not WheelAimbot then return end
-
-local wheel = GetClosestWheel()
-
-if wheel then
-
-local pos, visible = camera:WorldToViewportPoint(wheel.Position)
-
-if visible then
-
-VirtualInputManager:SendMouseMoveEvent(pos.X, pos.Y, game)
-
+if not WheelAimbot then
+LockedWheel = nil
+return
 end
+
+if not LockedWheel or not LockedWheel.Parent then
+LockedWheel = GetClosestWheel()
+end
+
+if LockedWheel then
+
+local predictedPos =
+LockedWheel.Position +
+(LockedWheel.AssemblyLinearVelocity * Prediction)
+
+camera.CFrame = CFrame.new(
+camera.CFrame.Position,
+predictedPos
+)
 
 end
 
