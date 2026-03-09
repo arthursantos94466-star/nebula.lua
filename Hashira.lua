@@ -77,67 +77,60 @@ end
 
 local WheelAimbot = false
 local WheelTarget = "All"
-
 local FOV = 250
 local MaxDistance = 500
 local Prediction = 0.12
+local Smoothing = 0.15 -- Essencial para Mobile não grudar 100%
 
 local LockedWheel = nil
 local camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
 
 ---------------------------------------------------
 -- CONTROLES RAYFIELD
 ---------------------------------------------------
-
 CombatTab:CreateToggle({
-Name = "Wheel Aimbot",
-CurrentValue = false,
-Callback = function(v)
-WheelAimbot = v
-LockedWheel = nil
-end
+    Name = "Wheel Aimbot",
+    CurrentValue = false,
+    Callback = function(v)
+        WheelAimbot = v
+        if not v then LockedWheel = nil end
+    end
 })
 
 CombatTab:CreateDropdown({
-Name = "Wheel Target",
-Options = {"All","FL","FR","RL","RR"},
-CurrentOption = {"All"},
-Callback = function(opt)
-WheelTarget = opt[1]
-LockedWheel = nil
-end
+    Name = "Wheel Target",
+    Options = {"All","FL","FR","RL","RR"},
+    CurrentOption = {"All"},
+    Callback = function(opt)
+        WheelTarget = opt[1]
+        LockedWheel = nil
+    end
 })
 
 CombatTab:CreateSlider({
-Name = "Wheel Aimbot FOV",
-Range = {50,400},
-Increment = 5,
-CurrentValue = 250,
-Callback = function(v)
-FOV = v
-end
+    Name = "Aimbot FOV",
+    Range = {50, 600},
+    Increment = 10,
+    CurrentValue = 250,
+    Callback = function(v) FOV = v end
 })
 
 CombatTab:CreateSlider({
-Name = "Wheel Aimbot Distance",
-Range = {100,800},
-Increment = 10,
-CurrentValue = 500,
-Callback = function(v)
-MaxDistance = v
-end
+    Name = "Aimbot Smooth (Suavização)",
+    Range = {1, 50},
+    Increment = 1,
+    CurrentValue = 15,
+    Callback = function(v) Smoothing = v/100 end
 })
 
 CombatTab:CreateSlider({
-Name = "Prediction",
-Range = {0,0.3},
-Increment = 0.01,
-CurrentValue = 0.12,
-Callback = function(v)
-Prediction = v
-end
+    Name = "Prediction",
+    Range = {0, 30},
+    Increment = 1,
+    CurrentValue = 12,
+    Callback = function(v) Prediction = v/100 end
 })
-
 ---------------------------------------------------
 -- DETECTAR SE CARRO ESTÁ OCUPADO
 ---------------------------------------------------
@@ -217,35 +210,28 @@ return closest
 end
 
 ---------------------------------------------------
--- LOOP AIMBOT
+-- LOOP DO AIMBOT (NO FINAL DO SCRIPT)
 ---------------------------------------------------
 
 RunService.RenderStepped:Connect(function()
+    if not WheelAimbot then 
+        LockedWheel = nil 
+        return 
+    end
 
-if not WheelAimbot then
-LockedWheel = nil
-return
-end
+    -- Se o alvo sair do FOV ou distância, ele "solta" e procura outro
+    if not LockedWheel or not IsValidTarget(LockedWheel) then
+        LockedWheel = GetClosestWheel()
+    end
 
-if not LockedWheel or not LockedWheel.Parent then
-LockedWheel = GetClosestWheel()
-end
-
-if LockedWheel then
-
-local predictedPos =
-LockedWheel.Position +
-(LockedWheel.AssemblyLinearVelocity * Prediction)
-
-camera.CFrame = CFrame.new(
-camera.CFrame.Position,
-predictedPos
-)
-
-end
-
+    if LockedWheel then
+        local predictedPos = LockedWheel.Position + (LockedWheel.AssemblyLinearVelocity * Prediction)
+        local targetCFrame = CFrame.new(camera.CFrame.Position, predictedPos)
+        
+        -- LERP: Faz a câmera seguir de forma suave, permitindo controle no Mobile
+        camera.CFrame = camera.CFrame:Lerp(targetCFrame, Smoothing)
+    end
 end)
-
 ---------------------------------------------------
 -- MOVEMENT
 ---------------------------------------------------
