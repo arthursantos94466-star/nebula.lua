@@ -72,6 +72,63 @@ end
 })
 
 ---------------------------------------------------
+-- WHEEL AIMBOT
+---------------------------------------------------
+
+local WheelAimbot=false
+
+CombatTab:CreateToggle({
+Name="Wheel Aimbot",
+CurrentValue=false,
+Callback=function(v)
+WheelAimbot=v
+end
+})
+
+local function GetClosestWheel()
+
+local closest=nil
+local dist=math.huge
+local wheels={"FL","FR","RL","RR"}
+
+for _,v in pairs(workspace:GetDescendants()) do
+for _,w in pairs(wheels) do
+if v.Name==w then
+
+local hrp=GetCharacter():FindFirstChild("HumanoidRootPart")
+
+if hrp then
+local magnitude=(hrp.Position-v.Position).Magnitude
+
+if magnitude<dist then
+dist=magnitude
+closest=v
+end
+end
+
+end
+end
+end
+
+return closest
+end
+
+RunService.RenderStepped:Connect(function()
+
+if WheelAimbot then
+
+local wheel=GetClosestWheel()
+
+if wheel then
+local camera=workspace.CurrentCamera
+camera.CFrame=CFrame.new(camera.CFrame.Position,wheel.Position)
+end
+
+end
+
+end)
+
+---------------------------------------------------
 -- MOVEMENT
 ---------------------------------------------------
 
@@ -221,206 +278,62 @@ end
 })
 
 ---------------------------------------------------
--- TELEPORT TOOL
+-- TELEPORT CAR
 ---------------------------------------------------
 
-TeleportTab:CreateButton({
-Name="Teleport Tool",
-Callback=function()
+local SelectedCar
 
-local tool=Instance.new("Tool")
-tool.Name="Teleport Tool"
-tool.RequiresHandle=false
-tool.Parent=LocalPlayer.Backpack
+local function GetCars()
 
-tool.Activated:Connect(function()
+local cars={}
 
-local mouse=LocalPlayer:GetMouse()
-local char=GetCharacter()
-local hrp=char:FindFirstChild("HumanoidRootPart")
-
-if hrp and mouse.Hit then
-hrp.CFrame=CFrame.new(mouse.Hit.Position+Vector3.new(0,5,0))
+for _,v in pairs(workspace:GetDescendants()) do
+if v.Name=="Volante.001" then
+local car=v.Parent
+if car and not table.find(cars,car.Name) then
+table.insert(cars,car.Name)
+end
+end
 end
 
-end)
+return cars
+end
 
+local carDropdown=TeleportTab:CreateDropdown({
+Name="Car List",
+Options=GetCars(),
+CurrentOption=nil,
+Callback=function(v)
+SelectedCar=v[1]
 end
 })
 
----------------------------------------------------
--- GO TO SKY
----------------------------------------------------
+TeleportTab:CreateButton({
+Name="Refresh Car List",
+Callback=function()
+carDropdown:Refresh(GetCars())
+end
+})
 
 TeleportTab:CreateButton({
-Name="Go To Sky",
+Name="Teleport To Car",
 Callback=function()
+
+if not SelectedCar then return end
+
+for _,v in pairs(workspace:GetDescendants()) do
+
+if v.Name=="Volante.001" and v.Parent and v.Parent.Name==SelectedCar then
 
 local hrp=GetCharacter():FindFirstChild("HumanoidRootPart")
 
 if hrp then
-hrp.CFrame=hrp.CFrame+Vector3.new(0,300,0)
+hrp.CFrame=v.CFrame+Vector3.new(0,3,0)
 end
 
-end
-})
-
----------------------------------------------------
--- CREATE PLATFORM
----------------------------------------------------
-
-TeleportTab:CreateButton({
-Name="Create Platform",
-Callback=function()
-
-local hrp=GetCharacter():FindFirstChild("HumanoidRootPart")
-
-if hrp then
-
-local part=Instance.new("Part")
-part.Size=Vector3.new(20,1,20)
-part.Anchored=true
-part.Position=hrp.Position-Vector3.new(0,3,0)
-part.Parent=workspace
-
-end
-
-end
-})
-
----------------------------------------------------
--- SPECTATE PLAYER
----------------------------------------------------
-
-ExtraTab:CreateButton({
-Name="Open Spectate",
-Callback=function()
-
-local screenGui=Instance.new("ScreenGui")
-screenGui.Parent=LocalPlayer.PlayerGui
-
-local toggleButton=Instance.new("TextButton",screenGui)
-toggleButton.Size=UDim2.new(0,120,0,40)
-toggleButton.Position=UDim2.new(0,10,0,10)
-toggleButton.Text="Spectate: OFF"
-
-local nextButton=Instance.new("TextButton",screenGui)
-nextButton.Size=UDim2.new(0,60,0,40)
-nextButton.Position=UDim2.new(0,140,0,10)
-nextButton.Text="Next"
-
-local prevButton=Instance.new("TextButton",screenGui)
-prevButton.Size=UDim2.new(0,60,0,40)
-prevButton.Position=UDim2.new(0,210,0,10)
-prevButton.Text="Prev"
-
-local playerLabel=Instance.new("TextLabel",screenGui)
-playerLabel.Size=UDim2.new(0,200,0,30)
-playerLabel.Position=UDim2.new(0,10,0,60)
-playerLabel.Text="Spectating: None"
-playerLabel.BackgroundTransparency=1
-playerLabel.TextColor3=Color3.new(1,1,1)
-
-local spectateEnabled=false
-local spectateIndex=1
-local playerList={}
-
-local function updatePlayerList()
-playerList={}
-for _,player in pairs(Players:GetPlayers()) do
-if player~=LocalPlayer then
-table.insert(playerList,player)
-end
+break
 end
 end
 
-local function setCamera()
-
-if spectateEnabled and #playerList>0 then
-
-local target=playerList[spectateIndex]
-
-if target.Character and target.Character:FindFirstChild("Humanoid") then
-Workspace.CurrentCamera.CameraSubject=target.Character.Humanoid
-end
-
-else
-
-if LocalPlayer.Character then
-Workspace.CurrentCamera.CameraSubject=LocalPlayer.Character:FindFirstChild("Humanoid")
-end
-
-end
-
-end
-
-toggleButton.MouseButton1Click:Connect(function()
-
-spectateEnabled=not spectateEnabled
-
-if spectateEnabled then
-toggleButton.Text="Spectate: ON"
-updatePlayerList()
-setCamera()
-else
-toggleButton.Text="Spectate: OFF"
-setCamera()
-end
-
-end)
-
-nextButton.MouseButton1Click:Connect(function()
-
-if #playerList>0 then
-spectateIndex=spectateIndex+1
-if spectateIndex>#playerList then
-spectateIndex=1
-end
-setCamera()
-end
-
-end)
-
-prevButton.MouseButton1Click:Connect(function()
-
-if #playerList>0 then
-spectateIndex=spectateIndex-1
-if spectateIndex<1 then
-spectateIndex=#playerList
-end
-setCamera()
-end
-
-end)
-
-end
-})
-
----------------------------------------------------
--- SERVER
----------------------------------------------------
-
-ServerTab:CreateButton({
-Name="Rejoin",
-Callback=function()
-TeleportService:Teleport(game.PlaceId,LocalPlayer)
-end
-})
-
-ServerTab:CreateButton({
-Name="Server Hop",
-Callback=function()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Infinity2346/Tect-Menu/main/ServerHop"))()
-end
-})
-
----------------------------------------------------
--- EXTRA
----------------------------------------------------
-
-ExtraTab:CreateButton({
-Name="Infinite Yield",
-Callback=function()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
 end
 })
