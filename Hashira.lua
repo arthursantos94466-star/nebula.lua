@@ -481,10 +481,14 @@ local TurretDropdown = TeleportTab:CreateDropdown({
     end
 })
 
--- Atualiza automaticamente a lista de TurretSeats a cada 3 segundos
+-- Atualiza automaticamente sem sumir a lista
 task.spawn(function()
     while task.wait(3) do
+        local current = SelectedTurret
         TurretDropdown:Refresh(GetTurretSeats())
+        if current then
+            TurretDropdown:SetValue(current) -- restaura seleção
+        end
     end
 end)
 
