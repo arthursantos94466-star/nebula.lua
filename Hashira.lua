@@ -80,21 +80,88 @@ local WheelTarget = "All"
 local FOV = 250
 local MaxDistance = 500
 local Prediction = 0.12
-local Smoothing = 0.15 -- Essencial para Mobile não grudar 100%
+local Smoothing = 0.15 
 
 local LockedWheel = nil
 local camera = workspace.CurrentCamera
 local RunService = game:GetService("RunService")
 
 ---------------------------------------------------
+-- FUNÇÕES DE SUPORTE (CORRIGIDAS)
+---------------------------------------------------
+
+-- Verifica se o carro está ocupado
+local function IsVehicleOccupied(part)
+    local model = part:FindFirstAncestorOfClass("Model")
+    if not model then return false end
+
+    for _,v in pairs(model:GetDescendants()) do
+        if v:IsA("VehicleSeat") and v.Occupant then
+            return true
+        end
+    end
+    return false
+end
+
+-- ESSENCIAL: Verifica se o alvo ainda é válido (Faz soltar a mira)
+local function IsValidTarget(part)
+    if not part or not part.Parent then return false end
+    
+    local pos, visible = camera:WorldToViewportPoint(part.Position)
+    if not visible then return false end
+    
+    local center = Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)
+    local dist2D = (center - Vector2.new(pos.X, pos.Y)).Magnitude
+    local dist3D = (camera.CFrame.Position - part.Position).Magnitude
+    
+    return dist2D <= FOV and dist3D <= MaxDistance
+end
+
+-- Pegar a roda mais próxima
+local function GetClosestWheel()
+    local closest = nil
+    local closestDist = math.huge
+    local center = Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)
+
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v.Name == "VRim" and v:IsA("BasePart") then
+            local wheelFolder = v.Parent
+            local wheelName = wheelFolder and wheelFolder.Parent and wheelFolder.Parent.Name
+
+            if (WheelTarget == "All" or wheelName == WheelTarget) then
+                local dist3D = (camera.CFrame.Position - v.Position).Magnitude
+                if dist3D <= MaxDistance then
+                    local pos, visible = camera:WorldToViewportPoint(v.Position)
+                    if visible then
+                        local dist2D = (center - Vector2.new(pos.X, pos.Y)).Magnitude
+                        if dist2D <= FOV then
+                            local priority = IsVehicleOccupied(v) and 0.5 or 1
+                            local finalDist = dist2D * priority
+
+                            if finalDist < closestDist then
+                                closestDist = finalDist
+                                closest = v
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+---------------------------------------------------
 -- CONTROLES RAYFIELD
 ---------------------------------------------------
+
+-- Certifique-se de que 'CombatTab' já foi criado acima no seu script principal
 CombatTab:CreateToggle({
     Name = "Wheel Aimbot",
     CurrentValue = false,
     Callback = function(v)
         WheelAimbot = v
-        if not v then LockedWheel = nil end
+        LockedWheel = nil
     end
 })
 
@@ -103,7 +170,8 @@ CombatTab:CreateDropdown({
     Options = {"All","FL","FR","RL","RR"},
     CurrentOption = {"All"},
     Callback = function(opt)
-        WheelTarget = opt[1]
+        -- Rayfield retorna uma tabela ou string dependendo da versão, tratamos aqui:
+        WheelTarget = type(opt) == "table" and opt[1] or opt
         LockedWheel = nil
     end
 })
@@ -131,86 +199,9 @@ CombatTab:CreateSlider({
     CurrentValue = 12,
     Callback = function(v) Prediction = v/100 end
 })
----------------------------------------------------
--- DETECTAR SE CARRO ESTÁ OCUPADO
----------------------------------------------------
-
-local function IsVehicleOccupied(part)
-
-local model = part:FindFirstAncestorOfClass("Model")
-if not model then return false end
-
-for _,v in pairs(model:GetDescendants()) do
-if v:IsA("VehicleSeat") and v.Occupant then
-return true
-end
-end
-
-return false
-end
 
 ---------------------------------------------------
--- PEGAR RODA MAIS PRÓXIMA
----------------------------------------------------
-
-local function GetClosestWheel()
-
-local closest
-local closestDist = math.huge
-
-local center = Vector2.new(
-camera.ViewportSize.X/2,
-camera.ViewportSize.Y/2
-)
-
-for _,v in pairs(workspace:GetDescendants()) do
-
-if v.Name == "VRim" and v:IsA("BasePart") then
-
-local wheelFolder = v.Parent
-local wheelName = wheelFolder and wheelFolder.Parent and wheelFolder.Parent.Name
-
-if WheelTarget == "All" or wheelName == WheelTarget then
-
-local dist3D = (camera.CFrame.Position - v.Position).Magnitude
-
-if dist3D <= MaxDistance then
-
-local pos, visible = camera:WorldToViewportPoint(v.Position)
-
-if visible then
-
-local dist2D = (center - Vector2.new(pos.X,pos.Y)).Magnitude
-
-if dist2D < FOV then
-
--- priorizar carro ocupado
-local priority = IsVehicleOccupied(v) and 0.5 or 1
-
-local finalDist = dist2D * priority
-
-if finalDist < closestDist then
-closestDist = finalDist
-closest = v
-end
-
-end
-
-end
-
-end
-
-end
-
-end
-
-end
-
-return closest
-end
-
----------------------------------------------------
--- LOOP DO AIMBOT (NO FINAL DO SCRIPT)
+-- LOOP DO AIMBOT (FINAL)
 ---------------------------------------------------
 
 RunService.RenderStepped:Connect(function()
@@ -219,19 +210,23 @@ RunService.RenderStepped:Connect(function()
         return 
     end
 
-    -- Se o alvo sair do FOV ou distância, ele "solta" e procura outro
+    -- Se o alvo atual não for mais válido, procura um novo
     if not LockedWheel or not IsValidTarget(LockedWheel) then
         LockedWheel = GetClosestWheel()
     end
 
     if LockedWheel then
-        local predictedPos = LockedWheel.Position + (LockedWheel.AssemblyLinearVelocity * Prediction)
+        -- Cálculo de Predição baseado na velocidade da roda
+        local velocity = LockedWheel.AssemblyLinearVelocity
+        local predictedPos = LockedWheel.Position + (velocity * Prediction)
+        
         local targetCFrame = CFrame.new(camera.CFrame.Position, predictedPos)
         
-        -- LERP: Faz a câmera seguir de forma suave, permitindo controle no Mobile
+        -- Lerp permite que a mira seja fluida no Mobile
         camera.CFrame = camera.CFrame:Lerp(targetCFrame, Smoothing)
     end
 end)
+
 ---------------------------------------------------
 -- MOVEMENT
 ---------------------------------------------------
