@@ -366,32 +366,11 @@ end
 })
 
 ---------------------------------------------------
--- CAR ESP + TRACER
+-- CAR ESP + TRACER (CORRIGIDO)
 ---------------------------------------------------
 
 local CarESP = false
 local CarESPObjects = {}
-
-VisualTab:CreateToggle({
-Name = "Car ESP",
-CurrentValue = false,
-Callback = function(v)
-
-CarESP = v
-
-if not v then
-
-for _,data in pairs(CarESPObjects) do
-if data.Gui then data.Gui:Destroy() end
-if data.Line then data.Line:Remove() end
-end
-
-CarESPObjects = {}
-
-end
-
-end
-})
 
 local function CreateCarESP(model, seat)
 
@@ -423,34 +402,53 @@ Line = line
 
 end
 
--- escaneia carros
-for _,v in pairs(workspace:GetDescendants()) do
+VisualTab:CreateToggle({
+Name = "Car ESP",
+CurrentValue = false,
+Callback = function(v)
 
-if v:IsA("VehicleSeat") or v.Name == "DriveSeat" then
+CarESP = v
 
-local model = v:FindFirstAncestorOfClass("Model")
+if v then
+
+for _,obj in pairs(workspace:GetDescendants()) do
+
+if obj:IsA("VehicleSeat") or obj.Name == "DriveSeat" then
+
+local model = obj:FindFirstAncestorOfClass("Model")
 
 if model and not CarESPObjects[model] then
-CreateCarESP(model,v)
+CreateCarESP(model,obj)
 end
 
 end
 
 end
 
--- atualiza
-task.spawn(function()
+else
 
-while true do
-task.wait(0.25)
+for _,data in pairs(CarESPObjects) do
+if data.Gui then data.Gui:Destroy() end
+if data.Line then data.Line:Remove() end
+end
 
-if not CarESP then continue end
+CarESPObjects = {}
 
-local hrp = GetCharacter():FindFirstChild("HumanoidRootPart")
-if not hrp then continue end
+end
+
+end
+})
 
 local camera = workspace.CurrentCamera
-local viewport = camera.ViewportSize
+
+RunService.RenderStepped:Connect(function()
+
+if not CarESP then return end
+
+local char = GetCharacter()
+local hrp = char:FindFirstChild("HumanoidRootPart")
+
+if not hrp then return end
 
 for model,data in pairs(CarESPObjects) do
 
@@ -471,17 +469,18 @@ end
 
 text.Text = model.Name.." ["..distance.."m]"
 
-local screenPos, visible = camera:WorldToViewportPoint(seat.Position)
+local fromPos,fromVisible = camera:WorldToViewportPoint(hrp.Position + Vector3.new(0,2,0))
+local toPos,toVisible = camera:WorldToViewportPoint(seat.Position)
 
-if visible then
+if fromVisible and toVisible then
 
 line.Visible = true
-line.From = Vector2.new(viewport.X/2, viewport.Y)
-line.To = Vector2.new(screenPos.X, screenPos.Y)
+line.From = Vector2.new(fromPos.X,fromPos.Y)
+line.To = Vector2.new(toPos.X,toPos.Y)
 
 else
+
 line.Visible = false
-end
 
 end
 
