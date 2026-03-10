@@ -296,30 +296,72 @@ end)
 -- VISUAL
 ---------------------------------------------------
 
+-- ESP Nome
 VisualTab:CreateToggle({
-Name="ESP",
-Callback=function()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/ESP-Script/refs/heads/main/ESP.lua"))()
+Name = "ESP Nome",
+CurrentValue = false,
+Callback = function(Value)
+getgenv().NameESP = Value
 end
 })
 
+-- ESP Tool Equipada
 VisualTab:CreateToggle({
-Name="FullBright",
-CurrentValue=false,
-Callback=function(Value)
+Name = "ESP Tool Equipada",
+CurrentValue = false,
+Callback = function(Value)
+getgenv().ToolESP = Value
+end
+})
+
+-- ESP Health Bar
+VisualTab:CreateToggle({
+Name = "ESP Health Bar",
+CurrentValue = false,
+Callback = function(Value)
+getgenv().HealthESP = Value
+end
+})
+
+-- ESP Esqueleto
+VisualTab:CreateToggle({
+Name = "ESP Esqueleto",
+CurrentValue = false,
+Callback = function(Value)
+getgenv().SkeletonESP = Value
+end
+})
+
+-- Tracer
+VisualTab:CreateToggle({
+Name = "Tracer",
+CurrentValue = false,
+Callback = function(Value)
+getgenv().TracerESP = Value
+end
+})
+
+---------------------------------------------------
+-- FULLBRIGHT
+---------------------------------------------------
+
+VisualTab:CreateToggle({
+Name = "FullBright",
+CurrentValue = false,
+Callback = function(Value)
 
 if Value then
-Lighting.Brightness=2
-Lighting.ClockTime=14
-Lighting.FogEnd=500000
-Lighting.GlobalShadows=false
-Lighting.Ambient=Color3.fromRGB(180,180,180)
-Lighting.OutdoorAmbient=Color3.fromRGB(180,180,180)
-Lighting.ExposureCompensation=0.3
+Lighting.Brightness = 2
+Lighting.ClockTime = 14
+Lighting.FogEnd = 500000
+Lighting.GlobalShadows = false
+Lighting.Ambient = Color3.fromRGB(180,180,180)
+Lighting.OutdoorAmbient = Color3.fromRGB(180,180,180)
+Lighting.ExposureCompensation = 0.3
 else
-Lighting.Brightness=1
-Lighting.GlobalShadows=true
-Lighting.ExposureCompensation=0
+Lighting.Brightness = 1
+Lighting.GlobalShadows = true
+Lighting.ExposureCompensation = 0
 end
 
 end
