@@ -231,16 +231,33 @@ end)
 -- MOVEMENT
 ---------------------------------------------------
 
+local WalkSpeedValue = 16
+local WalkSpeedEnabled = false
+
 MovementTab:CreateSlider({
-Name="WalkSpeed",
-Range={0,200},
-Increment=1,
-CurrentValue=16,
-Callback=function(Value)
-local hum=GetCharacter():FindFirstChildOfClass("Humanoid")
-if hum then hum.WalkSpeed=Value end
+Name = "WalkSpeed",
+Range = {0,200},
+Increment = 1,
+CurrentValue = 16,
+Callback = function(Value)
+WalkSpeedValue = Value
+WalkSpeedEnabled = true
 end
 })
+
+task.spawn(function()
+while task.wait() do
+if WalkSpeedEnabled then
+local char = game.Players.LocalPlayer.Character
+if char then
+local hum = char:FindFirstChildOfClass("Humanoid")
+if hum and hum.WalkSpeed ~= WalkSpeedValue then
+hum.WalkSpeed = WalkSpeedValue
+end
+end
+end
+end
+end)
 
 MovementTab:CreateSlider({
 Name="Jump Power",
@@ -296,49 +313,56 @@ end)
 -- VISUAL
 ---------------------------------------------------
 
+-- Variáveis globais
+getgenv().NameESP = false
+getgenv().ToolESP = false
+getgenv().HealthESP = false
+getgenv().SkeletonESP = false
+getgenv().TracerESP = false
+
 -- ESP Nome
 VisualTab:CreateToggle({
-Name = "ESP Nome",
-CurrentValue = false,
-Callback = function(Value)
-getgenv().NameESP = Value
-end
+    Name = "ESP Nome",
+    CurrentValue = getgenv().NameESP,
+    Callback = function(Value)
+        getgenv().NameESP = Value
+    end
 })
 
 -- ESP Tool Equipada
 VisualTab:CreateToggle({
-Name = "ESP Tool Equipada",
-CurrentValue = false,
-Callback = function(Value)
-getgenv().ToolESP = Value
-end
+    Name = "ESP Tool Equipada",
+    CurrentValue = getgenv().ToolESP,
+    Callback = function(Value)
+        getgenv().ToolESP = Value
+    end
 })
 
 -- ESP Health Bar
 VisualTab:CreateToggle({
-Name = "ESP Health Bar",
-CurrentValue = false,
-Callback = function(Value)
-getgenv().HealthESP = Value
-end
+    Name = "ESP Health Bar",
+    CurrentValue = getgenv().HealthESP,
+    Callback = function(Value)
+        getgenv().HealthESP = Value
+    end
 })
 
 -- ESP Esqueleto
 VisualTab:CreateToggle({
-Name = "ESP Esqueleto",
-CurrentValue = false,
-Callback = function(Value)
-getgenv().SkeletonESP = Value
-end
+    Name = "ESP Esqueleto",
+    CurrentValue = getgenv().SkeletonESP,
+    Callback = function(Value)
+        getgenv().SkeletonESP = Value
+    end
 })
 
 -- Tracer
 VisualTab:CreateToggle({
-Name = "Tracer",
-CurrentValue = false,
-Callback = function(Value)
-getgenv().TracerESP = Value
-end
+    Name = "Tracer",
+    CurrentValue = getgenv().TracerESP,
+    Callback = function(Value)
+        getgenv().TracerESP = Value
+    end
 })
 
 ---------------------------------------------------
