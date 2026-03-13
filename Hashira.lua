@@ -478,7 +478,7 @@ end
 })
 
 ---------------------------------------------------
--- TURRET ESP PRO
+-- TURRET ESP PRO (CORRIGIDO)
 ---------------------------------------------------
 
 local TurretESP = false
@@ -487,25 +487,45 @@ local Camera = workspace.CurrentCamera
 local DrawingLines = {}
 local BillboardCache = {}
 
-local function CreateBillboard(part,text,color)
+local function ClearTurretESP()
+
+    for _,bill in pairs(BillboardCache) do
+        if bill then
+            bill:Destroy()
+        end
+    end
+
+    for _,line in pairs(DrawingLines) do
+        if line then
+            line:Remove()
+        end
+    end
+
+    BillboardCache = {}
+    DrawingLines = {}
+
+end
+
+
+local function CreateBillboard(seat)
 
     local bill = Instance.new("BillboardGui")
     bill.Size = UDim2.new(0,120,0,40)
     bill.AlwaysOnTop = true
-    bill.Adornee = part
+    bill.Adornee = seat
     bill.StudsOffset = Vector3.new(0,3,0)
+    bill.Name = "TurretESP"
 
     local label = Instance.new("TextLabel")
+    label.Name = "Label"
     label.Size = UDim2.new(1,0,1,0)
     label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = color
     label.TextStrokeTransparency = 0
     label.TextScaled = true
     label.Font = Enum.Font.SourceSansBold
     label.Parent = bill
 
-    bill.Parent = part
+    bill.Parent = seat
 
     return bill
 
@@ -517,10 +537,8 @@ local function GetTurrets()
     local list = {}
 
     for _,v in pairs(workspace:GetDescendants()) do
-        if v:IsA("Seat") or v:IsA("VehicleSeat") then
-            if v.Name == "TurretSeat" then
-                table.insert(list,v)
-            end
+        if (v:IsA("Seat") or v:IsA("VehicleSeat")) and v.Name == "TurretSeat" then
+            table.insert(list,v)
         end
     end
 
@@ -530,12 +548,7 @@ end
 
 RunService.RenderStepped:Connect(function()
 
-    if not TurretESP then
-        for _,l in pairs(DrawingLines) do
-            l.Visible=false
-        end
-        return
-    end
+    if not TurretESP then return end
 
     local char = LocalPlayer.Character
     if not char then return end
@@ -545,32 +558,32 @@ RunService.RenderStepped:Connect(function()
 
     local turrets = GetTurrets()
 
-    for i,turret in pairs(turrets) do
+    for i,seat in pairs(turrets) do
 
-        local color = Color3.fromRGB(255,0,0)
-        local text = "TORRE"
-
-        if turret.Occupant then
-            color = Color3.fromRGB(0,255,0)
-            text = "TORRE (USO)"
+        if not BillboardCache[seat] then
+            BillboardCache[seat] = CreateBillboard(seat)
         end
 
-        if not BillboardCache[turret] then
-            BillboardCache[turret] = CreateBillboard(turret,text,color)
+        local bill = BillboardCache[seat]
+        local label = bill:FindFirstChild("Label")
+
+        if seat.Occupant then
+            label.Text = "TORRE (USO)"
+            label.TextColor3 = Color3.fromRGB(0,255,0)
+        else
+            label.Text = "TORRE"
+            label.TextColor3 = Color3.fromRGB(255,0,0)
         end
 
-        local bill = BillboardCache[turret]
-        bill.TextLabel.Text = text
-        bill.TextLabel.TextColor3 = color
 
-        local pos,onscreen = Camera:WorldToViewportPoint(turret.Position)
+        local pos,visible = Camera:WorldToViewportPoint(seat.Position)
 
-        if onscreen then
+        if visible then
 
             if not DrawingLines[i] then
                 local line = Drawing.new("Line")
-                line.Thickness = 2
                 line.Color = Color3.fromRGB(255,0,0)
+                line.Thickness = 2
                 DrawingLines[i] = line
             end
 
@@ -594,10 +607,16 @@ end)
 
 
 VisualTab:CreateToggle({
-Name="Turret ESP PRO",
-CurrentValue=false,
-Callback=function(v)
-TurretESP=v
+Name = "Turret ESP PRO",
+CurrentValue = false,
+Callback = function(v)
+
+    TurretESP = v
+
+    if not v then
+        ClearTurretESP()
+    end
+
 end
 })
 
