@@ -897,119 +897,222 @@ end)
 -- EXTRA
 ---------------------------------------------------
 
-local player = game.Players.LocalPlayer
-local ServerStorage = game:GetService("ServerStorage")
-
--- Função para criar Tool automaticamente se não existir
-local function CreateTool(name, scriptSource)
-    if not ServerStorage:FindFirstChild(name) then
-        local tool = Instance.new("Tool")
-        tool.Name = name
-        tool.CanBeDropped = true
-        tool.RequiresHandle = false
-        tool.Parent = ServerStorage
-
-        local localScript = Instance.new("LocalScript")
-        localScript.Source = scriptSource
-        localScript.Parent = tool
-    end
-end
-
--- Script da Lanterna
-local lanternaScript = [[
-local tool = script.Parent
-local player = game.Players.LocalPlayer
-local lightOn = false
-local lightPart
-
-tool.Activated:Connect(function()
-    if not lightOn then
-        if not lightPart then
-            lightPart = Instance.new("Part")
-            lightPart.Size = Vector3.new(0.2,0.2,0.2)
-            lightPart.Transparency = 1
-            lightPart.Anchored = false
-            lightPart.CanCollide = false
-            lightPart.Parent = workspace
-
-            local light = Instance.new("SpotLight")
-            light.Brightness = 3
-            light.Range = 20
-            light.Angle = 45
-            light.Parent = lightPart
-        end
-        lightOn = true
-    else
-        lightOn = false
-    end
-end)
-
-game:GetService("RunService").RenderStepped:Connect(function()
-    if lightOn and lightPart then
-        local char = player.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            lightPart.Position = char.HumanoidRootPart.Position + char.HumanoidRootPart.CFrame.LookVector * 3
-            lightPart.CFrame = CFrame.new(lightPart.Position, lightPart.Position + char.HumanoidRootPart.CFrame.LookVector*5)
-        end
-    end
-end)
-]]
-
--- Script do Spray
-local sprayScript = [[
-local tool = script.Parent
-local player = game.Players.LocalPlayer
-
-tool.Activated:Connect(function()
-    local char = player.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        local forwardPos = char.HumanoidRootPart.Position + char.HumanoidRootPart.CFrame.LookVector * 3
-
-        local part = Instance.new("Part")
-        part.Size = Vector3.new(1,0.2,1)
-        part.Anchored = true
-        part.CanCollide = false
-        part.Position = forwardPos
-        part.Parent = workspace
-
-        local decal = Instance.new("Decal")
-        decal.Texture = "http://www.roblox.com/asset/?id=104920330490627"
-        decal.Face = Enum.NormalId.Top
-        decal.Parent = part
-    end
-end)
-]]
-
--- Criar as tools
-CreateTool("Lanterna", lanternaScript)
-CreateTool("Spray", sprayScript)
-
--- Função para dar tool e notificar
-local function GiveTool(toolName)
-    local tool = ServerStorage:FindFirstChild(toolName)
-    if tool then
-        tool:Clone().Parent = player.Backpack
-        Rayfield:Notify({
-            Title = "Extra",
-            Content = toolName .. " adicionada ao seu inventário!",
-            Duration = 3,
-            Image = 4483362458
-        })
-    end
-end
-
--- Botão Dar Lanterna
 ExtraTab:CreateButton({
-    Name = "Dar Lanterna",
+    Name = "Lanterna",
     Callback = function()
-        GiveTool("Lanterna")
+        -- Executa o script externo da lanterna
+        loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Universal-Flashlight-Script-122146"))()
     end
 })
 
--- Botão Dar Spray
-ExtraTab:CreateButton({
-    Name = "Dar Spray",
-    Callback = function()
-        GiveTool("Spray")
+-- =========================
+-- DRONE PRO+ NA ABA "Extra"
+-- =========================
+do
+    local player = game.Players.LocalPlayer
+    local camera = workspace.CurrentCamera
+    local RunService = game:GetService("RunService")
+    local UIS = game:GetService("UserInputService")
+    local Players = game:GetService("Players")
+
+    local ativo = false
+    local dronePos = Vector3.new()
+    local lastPos = Vector3.new()
+    local speedReal = 0
+    local moveVector = Vector3.new()
+    local lookX, lookY = 0, 0
+    local zoom = 70
+    local gui, light
+
+    local color = Instance.new("ColorCorrectionEffect", game.Lighting)
+    color.Enabled = false
+
+    local function toggleNightVision()
+        color.Enabled = not color.Enabled
+        if color.Enabled then
+            color.TintColor = Color3.fromRGB(100,255,100)
+            color.Brightness = 0.2
+        end
     end
-})
+
+    local function iniciarDrone()
+        dronePos = player.Character.HumanoidRootPart.Position + Vector3.new(0,10,0)
+        lastPos = dronePos
+
+        light = Instance.new("PointLight")
+        light.Brightness = 2
+        light.Range = 25
+        light.Enabled = false
+        light.Parent = workspace.Terrain
+    end
+
+    local function criarGUI()
+        gui = Instance.new("ScreenGui", player.PlayerGui)
+
+        -- HUD TEXTO
+        local hud = Instance.new("TextLabel", gui)
+        hud.Size = UDim2.new(0,250,0,60)
+        hud.Position = UDim2.new(0.02,0,0.02,0)
+        hud.BackgroundTransparency = 1
+        hud.TextColor3 = Color3.new(1,1,1)
+        hud.TextXAlignment = Enum.TextXAlignment.Left
+
+        -- BOTÕES
+        local function btn(txt, pos)
+            local b = Instance.new("TextButton", gui)
+            b.Size = UDim2.new(0,60,0,60)
+            b.Position = pos
+            b.Text = txt
+            b.BackgroundColor3 = Color3.fromRGB(30,30,30)
+            return b
+        end
+
+        local up = btn("⬆", UDim2.new(0.85,0,0.6,0))
+        local down = btn("⬇", UDim2.new(0.85,0,0.75,0))
+        local lightBtn = btn("🔦", UDim2.new(0.85,0,0.88,0))
+        local nightBtn = btn("🌙", UDim2.new(0.75,0,0.88,0))
+
+        up.MouseButton1Down:Connect(function()
+            moveVector += Vector3.new(0,1,0)
+        end)
+        down.MouseButton1Down:Connect(function()
+            moveVector += Vector3.new(0,-1,0)
+        end)
+        lightBtn.MouseButton1Click:Connect(function()
+            if light then light.Enabled = not light.Enabled end
+        end)
+        nightBtn.MouseButton1Click:Connect(toggleNightVision)
+
+        -- JOYSTICK
+        local base = Instance.new("Frame", gui)
+        base.Size = UDim2.new(0,120,0,120)
+        base.Position = UDim2.new(0.1,0,0.7,0)
+        base.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+        local stick = Instance.new("Frame", base)
+        stick.Size = UDim2.new(0,50,0,50)
+        stick.Position = UDim2.new(0.5,-25,0.5,-25)
+
+        local dragging = false
+
+        base.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch then dragging = true end
+        end)
+        base.InputEnded:Connect(function(input)
+            dragging = false
+            stick.Position = UDim2.new(0.5,-25,0.5,-25)
+            moveVector = Vector3.new()
+        end)
+        base.InputChanged:Connect(function(input)
+            if dragging then
+                local pos = input.Position
+                local center = base.AbsolutePosition + base.AbsoluteSize/2
+                local offset = (pos - center)
+                local max = 40
+                local clamped = Vector2.new(
+                    math.clamp(offset.X,-max,max),
+                    math.clamp(offset.Y,-max,max)
+                )
+                stick.Position = UDim2.new(0.5,clamped.X-25,0.5,clamped.Y-25)
+                moveVector = Vector3.new(clamped.X/max,0,clamped.Y/max)
+            end
+        end)
+
+        -- =========================
+        -- MINI MAPA
+        -- =========================
+        local map = Instance.new("Frame", gui)
+        map.Size = UDim2.new(0,150,0,150)
+        map.Position = UDim2.new(0.8,0,0.02,0)
+        map.BackgroundColor3 = Color3.fromRGB(20,20,20)
+
+        local points = {}
+        for _,p in pairs(Players:GetPlayers()) do
+            if p ~= player then
+                local dot = Instance.new("Frame", map)
+                dot.Size = UDim2.new(0,5,0,5)
+                dot.BackgroundColor3 = Color3.new(1,0,0)
+                points[p] = dot
+            end
+        end
+        Players.PlayerAdded:Connect(function(p)
+            local dot = Instance.new("Frame", map)
+            dot.Size = UDim2.new(0,5,0,5)
+            dot.BackgroundColor3 = Color3.new(1,0,0)
+            points[p] = dot
+        end)
+
+        -- LOOP HUD + MAPA
+        RunService.RenderStepped:Connect(function(dt)
+            if ativo then
+                local altitude = math.floor(dronePos.Y)
+                speedReal = (dronePos - lastPos).Magnitude / dt
+                lastPos = dronePos
+                hud.Text = "ALT: "..altitude.." | SPD: "..math.floor(speedReal)
+
+                for p,dot in pairs(points) do
+                    if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                        local pos = p.Character.HumanoidRootPart.Position
+                        local rel = (pos - dronePos)/10
+                        dot.Position = UDim2.new(0.5 + rel.X/100,0,0.5 + rel.Z/100,0)
+                    end
+                end
+            end
+        end)
+    end
+
+    -- =========================
+    -- ATIVAR / DESATIVAR
+    -- =========================
+    local function ativar()
+        ativo = true
+        iniciarDrone()
+        criarGUI()
+        camera.CameraType = Enum.CameraType.Scriptable
+    end
+
+    local function desativar()
+        ativo = false
+        camera.CameraType = Enum.CameraType.Custom
+        if gui then gui:Destroy() gui = nil end
+        if light then light:Destroy() light = nil end
+        color.Enabled = false
+    end
+
+    -- =========================
+    -- CONTROLE DE CÂMERA
+    -- =========================
+    UIS.InputChanged:Connect(function(input)
+        if ativo and input.UserInputType == Enum.UserInputType.Touch then
+            lookX -= input.Delta.X * 0.2
+            lookY = math.clamp(lookY - input.Delta.Y * 0.2, -80, 80)
+        end
+    end)
+
+    -- =========================
+    -- LOOP PRINCIPAL
+    -- =========================
+    RunService.RenderStepped:Connect(function()
+        if ativo then
+            local rot = CFrame.Angles(0, math.rad(lookX), 0) * CFrame.Angles(math.rad(lookY),0,0)
+            dronePos += rot:VectorToWorldSpace(moveVector)
+            camera.CFrame = CFrame.new(dronePos) * rot
+            camera.FieldOfView = zoom
+            if light then light.Position = dronePos end
+        end
+    end)
+
+    -- =========================
+    -- BOTÃO NA ABA "Extra"
+    -- =========================
+    ExtraTab:CreateButton({
+        Name = "Drone PRO+",
+        Callback = function()
+            if ativo then
+                desativar()
+            else
+                ativar()
+            end
+        end
+    })
+end
