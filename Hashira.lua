@@ -892,3 +892,124 @@ end
 end
 
 end)
+
+---------------------------------------------------
+-- EXTRA
+---------------------------------------------------
+
+local player = game.Players.LocalPlayer
+local ServerStorage = game:GetService("ServerStorage")
+
+-- Função para criar Tool automaticamente se não existir
+local function CreateTool(name, scriptSource)
+    if not ServerStorage:FindFirstChild(name) then
+        local tool = Instance.new("Tool")
+        tool.Name = name
+        tool.CanBeDropped = true
+        tool.RequiresHandle = false
+        tool.Parent = ServerStorage
+
+        local localScript = Instance.new("LocalScript")
+        localScript.Source = scriptSource
+        localScript.Parent = tool
+    end
+end
+
+-- Script da Lanterna
+local lanternaScript = [[
+local tool = script.Parent
+local player = game.Players.LocalPlayer
+local lightOn = false
+local lightPart
+
+tool.Activated:Connect(function()
+    if not lightOn then
+        if not lightPart then
+            lightPart = Instance.new("Part")
+            lightPart.Size = Vector3.new(0.2,0.2,0.2)
+            lightPart.Transparency = 1
+            lightPart.Anchored = false
+            lightPart.CanCollide = false
+            lightPart.Parent = workspace
+
+            local light = Instance.new("SpotLight")
+            light.Brightness = 3
+            light.Range = 20
+            light.Angle = 45
+            light.Parent = lightPart
+        end
+        lightOn = true
+    else
+        lightOn = false
+    end
+end)
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    if lightOn and lightPart then
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            lightPart.Position = char.HumanoidRootPart.Position + char.HumanoidRootPart.CFrame.LookVector * 3
+            lightPart.CFrame = CFrame.new(lightPart.Position, lightPart.Position + char.HumanoidRootPart.CFrame.LookVector*5)
+        end
+    end
+end)
+]]
+
+-- Script do Spray
+local sprayScript = [[
+local tool = script.Parent
+local player = game.Players.LocalPlayer
+
+tool.Activated:Connect(function()
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local forwardPos = char.HumanoidRootPart.Position + char.HumanoidRootPart.CFrame.LookVector * 3
+
+        local part = Instance.new("Part")
+        part.Size = Vector3.new(1,0.2,1)
+        part.Anchored = true
+        part.CanCollide = false
+        part.Position = forwardPos
+        part.Parent = workspace
+
+        local decal = Instance.new("Decal")
+        decal.Texture = "http://www.roblox.com/asset/?id=104920330490627"
+        decal.Face = Enum.NormalId.Top
+        decal.Parent = part
+    end
+end)
+]]
+
+-- Criar as tools
+CreateTool("Lanterna", lanternaScript)
+CreateTool("Spray", sprayScript)
+
+-- Função para dar tool e notificar
+local function GiveTool(toolName)
+    local tool = ServerStorage:FindFirstChild(toolName)
+    if tool then
+        tool:Clone().Parent = player.Backpack
+        Rayfield:Notify({
+            Title = "Extra",
+            Content = toolName .. " adicionada ao seu inventário!",
+            Duration = 3,
+            Image = 4483362458
+        })
+    end
+end
+
+-- Botão Dar Lanterna
+ExtraTab:CreateButton({
+    Name = "Dar Lanterna",
+    Callback = function()
+        GiveTool("Lanterna")
+    end
+})
+
+-- Botão Dar Spray
+ExtraTab:CreateButton({
+    Name = "Dar Spray",
+    Callback = function()
+        GiveTool("Spray")
+    end
+})
