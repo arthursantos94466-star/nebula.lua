@@ -157,7 +157,7 @@ end
 
 -- Certifique-se de que 'CombatTab' já foi criado acima no seu script principal
 CombatTab:CreateToggle({
-    Name = "Wheel Aimbot",
+    Name = "Aimbot Roda",
     CurrentValue = false,
     Callback = function(v)
         WheelAimbot = v
@@ -390,66 +390,6 @@ EspSettings.Names = EspSettings.Names or {Enabled = false}
 EspSettings.Tracers = EspSettings.Tracers or {Enabled = false}
 EspSettings.Skeletons = EspSettings.Skeletons or {Enabled = false}
 EspSettings.HealthBars = EspSettings.HealthBars or {Enabled = false}
-
--------------------------------------------------
--- ESP Nome
--------------------------------------------------
-
-VisualTab:CreateToggle({
-    Name = "ESP Nome",
-    CurrentValue = EspSettings.Names.Enabled,
-    Callback = function(Value)
-        EspSettings.Names.Enabled = Value
-    end
-})
-
--------------------------------------------------
--- ESP Tool Equipada
--------------------------------------------------
-
-VisualTab:CreateToggle({
-    Name = "ESP Tool Equipada",
-    CurrentValue = false,
-    Callback = function(Value)
-        EspSettings.Names.ShowTool = Value
-    end
-})
-
--------------------------------------------------
--- ESP Health Bar
--------------------------------------------------
-
-VisualTab:CreateToggle({
-    Name = "ESP Health Bar",
-    CurrentValue = EspSettings.HealthBars.Enabled,
-    Callback = function(Value)
-        EspSettings.HealthBars.Enabled = Value
-    end
-})
-
--------------------------------------------------
--- ESP Esqueleto
--------------------------------------------------
-
-VisualTab:CreateToggle({
-    Name = "ESP Esqueleto",
-    CurrentValue = EspSettings.Skeletons.Enabled,
-    Callback = function(Value)
-        EspSettings.Skeletons.Enabled = Value
-    end
-})
-
--------------------------------------------------
--- Tracer
--------------------------------------------------
-
-VisualTab:CreateToggle({
-    Name = "Tracer",
-    CurrentValue = EspSettings.Tracers.Enabled,
-    Callback = function(Value)
-        EspSettings.Tracers.Enabled = Value
-    end
-})
 
 ---------------------------------------------------
 -- FULLBRIGHT
