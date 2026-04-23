@@ -59,7 +59,7 @@ end
 })
 
 CombatTab:CreateButton({
-Name="Hitbox",
+Name="Hitbox (off)",
 Callback=function()
 for _,v in pairs(Players:GetPlayers()) do
 if v~=LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
@@ -166,8 +166,8 @@ CombatTab:CreateToggle({
 })
 
 CombatTab:CreateDropdown({
-    Name = "Wheel Target",
-    Options = {"All","FL","FR","RL","RR"},
+    Name = "Lista de Roda",
+    Options = {"All","FE","FD","TE","TD"},
     CurrentOption = {"All"},
     Callback = function(opt)
         -- Rayfield retorna uma tabela ou string dependendo da versão, tratamos aqui:
@@ -185,7 +185,7 @@ CombatTab:CreateSlider({
 })
 
 CombatTab:CreateSlider({
-    Name = "Aimbot Smooth (Suavização)",
+    Name = "Aimbot (Suavização)",
     Range = {1, 50},
     Increment = 1,
     CurrentValue = 15,
@@ -193,7 +193,7 @@ CombatTab:CreateSlider({
 })
 
 CombatTab:CreateSlider({
-    Name = "Prediction",
+    Name = "Precisão",
     Range = {0, 30},
     Increment = 1,
     CurrentValue = 12,
@@ -290,7 +290,7 @@ end)
 
 
 CombatTab:CreateToggle({
-Name="Turret Aimbot PRO",
+Name="Torre Aimbot",
 CurrentValue=false,
 Callback=function(v)
 TurretAimbot=v
@@ -547,7 +547,7 @@ end)
 
 
 VisualTab:CreateToggle({
-Name = "Turret ESP PRO",
+Name = "Turret ESP",
 CurrentValue = false,
 Callback = function(v)
 
@@ -597,7 +597,7 @@ return cars
 end
 
 local CarDropdown = TeleportTab:CreateDropdown({
-Name = "Car List",
+Name = "Lista de Carros",
 Options = GetCars(),
 CurrentOption = nil,
 Callback = function(v)
@@ -606,14 +606,14 @@ end
 })
 
 TeleportTab:CreateButton({
-Name = "Refresh Car List",
+Name = "Reset Lista",
 Callback = function()
 CarDropdown:Refresh(GetCars())
 end
 })
 
 TeleportTab:CreateButton({
-Name = "Teleport To Car",
+Name = "Teleporte ao Carro",
 Callback = function()
 
 if not SelectedCar then return end
@@ -658,7 +658,7 @@ local function GetTurretSeats()
 end
 
 TurretDropdown = TeleportTab:CreateDropdown({
-    Name = "TurretSeat List",
+    Name = "Lista de Torre",
     Options = GetTurretSeats(),
     CurrentOption = nil,
     Callback = function(v)
